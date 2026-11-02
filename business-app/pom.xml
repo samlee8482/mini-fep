@@ -1,0 +1,33 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 부모 프로젝트의 Spring Boot 및 Java 설정 상속 -->
+    <parent>
+        <groupId>com.minifep</groupId>
+        <artifactId>mini-fep</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>business-app</artifactId>
+
+    <dependencies>
+        <!-- REST API 등 업무 애플리케이션 개발에 사용 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- FEP 공통 모듈의 기능을 업무 애플리케이션에서 사용 -->
+        <dependency>
+            <groupId>com.minifep</groupId>
+            <artifactId>fep-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>

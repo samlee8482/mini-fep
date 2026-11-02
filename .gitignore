@@ -1,0 +1,19 @@
+# Maven 빌드 결과물
+target/
+**/target/
+
+# macOS 임시 파일
+.DS_Store
+
+# VS Code 개인 설정
+.vscode/
+
+# Java 및 IDE 임시 파일
+*.class
+*.log
+.idea/
+*.iml
+
+# 환경변수 및 비밀정보
+.env
+.env.*
