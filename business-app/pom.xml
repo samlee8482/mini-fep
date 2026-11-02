@@ -2,32 +2,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- 부모 프로젝트의 Spring Boot 및 Java 설정 상속 -->
+    <!-- 최상위 Maven 프로젝트 상속 -->
     <parent>
         <groupId>com.minifep</groupId>
         <artifactId>mini-fep</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
+    <!-- 업무 애플리케이션 모듈 -->
     <artifactId>business-app</artifactId>
+    <packaging>jar</packaging>
+
+    <name>business-app</name>
+    <description>Mini FEP Business Application</description>
 
     <dependencies>
-        <!-- REST API 등 업무 애플리케이션 개발에 사용 -->
+
+        <!-- Spring Boot 기본 기능 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter</artifactId>
+            <version>3.5.7</version>
         </dependency>
 
-        <!-- FEP 공통 모듈의 기능을 업무 애플리케이션에서 사용 -->
+        <!-- FEP 공통 프레임워크 참조 -->
         <dependency>
             <groupId>com.minifep</groupId>
             <artifactId>fep-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+
     </dependencies>
+
+    <build>
+        <plugins>
+
+            <!-- Spring Boot 실행형 JAR 생성 -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.5.7</version>
+
+                <executions>
+                    <execution>
+                        <goals>
+                            <!-- 일반 JAR를 실행형 JAR로 변환 -->
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+
+            </plugin>
+
+        </plugins>
+    </build>
 
 </project>

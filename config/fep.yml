@@ -1,0 +1,21 @@
+
+# Mini FEP 외부기관 TCP 접속 설정
+# 설정 변경 후 애플리케이션 재시작 필요
+# 기관 추가 및 IP/Port 변경 시 Java 소스 수정 최소화
+
+fep:
+  institutions:
+
+    # 가상 외부기관 A
+    A:
+      host: 127.0.0.1
+      port: 9001
+      connect-timeout: 3000
+      read-timeout: 5000
+
+    # 가상 외부기관 B
+    B:
+      host: 127.0.0.1
+      port: 9002
+      connect-timeout: 3000
+      read-timeout: 5000
