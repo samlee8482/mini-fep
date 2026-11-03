@@ -9,27 +9,26 @@ import com.minifep.core.tcp.TcpClient;
 import java.io.IOException;
 
 /**
- * [Chapter 3 설계 및 동작 설명]
- * FEP 공통 서비스는 기관 접속정보 조회, 요청 매핑, TCP 통신, 응답 역매핑을 순서대로 조정한다.
- * 업무 앱이 IP, 포트, 기관별 전문 규칙을 직접 관리하지 않도록 책임을 분리한다.
- * 업무 앱과 기관별 Mapper/TCP 통신을 연결하는 FEP 공통 서비스이다. */
+ * 업무 애플리케이션과 기관별 전문 변환/TCP 통신을 연결하는 공통 서비스.
+ * Chapter 3의 처리 순서를 유지하면서 Mapper 등록소를 외부에서 주입받도록 개선했다.
+ * 업무 앱은 기관별 prefix나 소켓 처리 로직을 알 필요가 없다.
+ */
 public class FepService {
     private final InstitutionRegistry registry;
     private final MessageMapperRegistry mapperRegistry;
     private final TcpClient tcpClient;
 
-    public FepService(InstitutionRegistry registry) {
+    /** Spring 자동 설정이 생성한 등록소를 받아 공통 서비스를 초기화한다. */
+    public FepService(InstitutionRegistry registry, MessageMapperRegistry mapperRegistry) {
         this.registry = registry;
-        this.mapperRegistry = new MessageMapperRegistry();
+        this.mapperRegistry = mapperRegistry;
         this.tcpClient = new TcpClient();
     }
 
     /**
-     * 업무 앱은 기관 코드와 공통 전문만 넘긴다.
-     * 1. 기관 설정 조회 → 2. 요청 매핑 → 3. TCP 송수신 → 4. 응답 역매핑.
-     */
-    /**
-     * 기관별 요청을 처리하고 응답을 반환한다. 입력값 및 네트워크 오류는 호출자에게 전달한다.
+     * 1. 기관 접속정보 조회 -> 2. 기관 Mapper 조회 -> 3. 요청 본문 변환
+     * -> 4. TCP 송수신(길이 헤더는 TcpClient 처리) -> 5. 응답 공통 전문 변환.
+     * IOException 및 전문 검증 오류는 기존처럼 호출자에게 전달한다.
      */
     public FepMessage send(String institutionCode, FepMessage request) throws IOException {
         ConnectionInfo info = registry.get(institutionCode);

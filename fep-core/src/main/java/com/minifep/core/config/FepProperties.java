@@ -4,12 +4,16 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * [Chapter 3 설계 및 동작 설명]
- * @ConfigurationProperties는 fep.yml의 fep.institutions 설정을 Java record로 변환한다.
- * connect-timeout과 read-timeout은 각각 connectTimeout, readTimeout에 대응한다.
- * 외부 fep.yml의 fep.* 값을 Java 객체로 바인딩한다. */
+ * 외부 config/fep.yml의 fep.* 설정을 Java record로 자동 변환한다.
+ * Spring Boot의 relaxed binding으로 connect-timeout -> connectTimeout이 연결된다.
+ * 기관별 TCP 정보와 전문 변환 규칙을 한 곳에서 관리한다.
+ */
 @ConfigurationProperties(prefix = "fep")
 public record FepProperties(Map<String, Institution> institutions) {
-    /** 기관별 TCP 주소와 연결/응답 제한 시간(밀리초)이다. */
-    public record Institution(String host, int port, int connectTimeout, int readTimeout) { }
+    /** 기관별 접속 정보 및 Mapper 규칙. */
+    public record Institution(String host, int port, int connectTimeout, int readTimeout,
+                              Mapper mapper) { }
+
+    /** type=common이면 prefix를 사용하고, type=custom이면 전용 Mapper를 선택한다. */
+    public record Mapper(String type, String prefix) { }
 }

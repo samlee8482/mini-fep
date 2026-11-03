@@ -1,5 +1,7 @@
-# 공통 FEP 프레임워크가 읽는 기관별 TCP 접속 설정이다.
-# 설정 변경 후에는 업무 애플리케이션을 다시 실행한다.
+# FEP 공통 설정: 업무 앱 수정 없이 기관별 접속 정보와 전문 규격을 관리한다.
+# mapper.type=common : YAML 규칙을 사용하는 공통 Mapper
+# mapper.prefix      : 기관 전문 첫 번째 ASCII 문자(1바이트)
+# mapper.type=custom : 특수 기관 전용 Mapper를 사용(현재 A/B는 모두 common)
 fep:
   institutions:
     A:
@@ -7,8 +9,14 @@ fep:
       port: 9001
       connect-timeout: 3000
       read-timeout: 5000
+      mapper:
+        type: common
+        prefix: A
     B:
       host: 127.0.0.1
       port: 9002
       connect-timeout: 3000
       read-timeout: 5000
+      mapper:
+        type: common
+        prefix: B
