@@ -1,20 +1,22 @@
-
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
+    <!-- Maven POM 파일 형식의 버전. Maven 3에서 일반적으로 4.0.0을 사용한다. -->
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- 부모 프로젝트의 공통 설정 상속 -->
+    <!-- 부모 POM에서 Java 버전, Spring Boot 버전 및 프로젝트 버전을 상속한다. -->
     <parent>
         <groupId>com.minifep</groupId>
         <artifactId>mini-fep</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <!-- 가상 대외기관 TCP 서버 구현 모듈 -->
+    <!-- 가상 기관 A/B의 TCP 테스트 서버 -->
     <artifactId>mock-institution</artifactId>
+    <!-- 일반 Java 라이브러리 또는 실행 JAR의 기본 패키징 방식 -->
     <packaging>jar</packaging>
 
 </project>

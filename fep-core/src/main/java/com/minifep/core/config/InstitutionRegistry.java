@@ -1,57 +1,32 @@
-
 package com.minifep.core.config;
 
 import java.util.Map;
-import java.util.HashMap;
 
 /**
- * FEP 기관별 접속 정보 관리 클래스
- *
- * 업무 애플리케이션은 기관 코드만 전달하고,
- * 실제 IP, Port, Timeout은 FEP에서 관리한다.
- */
+ * [Chapter 3 설계 및 동작 설명]
+ * 기관 코드를 IP, 포트, 타임아웃으로 연결하는 설정 등록소다.
+ * Map.copyOf는 설정의 외부 변경을 막으며 미등록 기관 요청은 예외 처리한다.
+ * 기관 코드를 IP/Port/Timeout으로 변환하는 공통 등록소이다. */
 public class InstitutionRegistry {
-
-    // 기관별 접속 정보를 저장하는 Map
     private final Map<String, ConnectionInfo> institutions;
 
-    /**
-     * 기관별 TCP 접속 정보
-     */
-    public record ConnectionInfo(
-            String host,
-            int port,
-            int connectTimeout,
-            int readTimeout) {
-    }
+    /** 기관 한 곳의 TCP 접속정보를 담는 변경 불가능한 객체이다. */
+    public record ConnectionInfo(String host, int port, int connectTimeout, int readTimeout) { }
 
-    /**
-     * 외부에서 전달받은 기관 설정으로 Registry 생성
-     */
-    public InstitutionRegistry(
-            Map<String, ConnectionInfo> institutions) {
-
-        // 외부에서 설정 Map을 변경하지 못하도록 복사
+    public InstitutionRegistry(Map<String, ConnectionInfo> institutions) {
+        // 복사본을 보관하여 외부 코드가 접속정보를 임의 변경하지 못하게 한다.
         this.institutions = Map.copyOf(institutions);
     }
 
     /**
-     * 기관 코드로 접속 정보 조회
-     *
-     * @param institutionCode 기관 코드
-     * @return 기관별 TCP 접속 정보
+     * 기관 코드를 이용해 등록된 설정 또는 Mapper를 조회한다.
      */
     public ConnectionInfo get(String institutionCode) {
-
         ConnectionInfo info = institutions.get(institutionCode);
-
-        // 등록되지 않은 기관은 통신 차단
+        // 등록되지 않은 기관으로는 접속하지 않는다.
         if (info == null) {
-            throw new IllegalArgumentException(
-                "등록되지 않은 기관: " + institutionCode
-            );
+            throw new IllegalArgumentException("등록되지 않은 기관: " + institutionCode);
         }
-
         return info;
     }
 }

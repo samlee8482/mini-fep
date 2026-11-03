@@ -1,6 +1,4 @@
-
-# 업무 애플리케이션 전용 설정
-
+# 업무 애플리케이션의 이름만 관리한다. 기관 접속정보는 config/fep.yml에 있다.
 spring:
   application:
     name: mini-fep-business
