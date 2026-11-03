@@ -16,5 +16,8 @@ target/
 
 # 환경변수 및 비밀정보
 .env
-.env.**.zip
+.env.*
+!.env.example
+
+# ZIP 압축 파일
 *.zip
