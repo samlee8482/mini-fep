@@ -1,10 +1,6 @@
 
-# Spring Boot 애플리케이션 설정
+# 업무 애플리케이션 전용 설정
 
 spring:
   application:
     name: mini-fep-business
-
-  # 프로젝트 최상위 config/fep.yml 파일 로딩
-  config:
-    import: optional:file:./config/fep.yml

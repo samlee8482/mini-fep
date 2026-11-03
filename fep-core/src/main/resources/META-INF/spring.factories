@@ -1,0 +1,3 @@
+# Spring Boot 시작 시 FEP 외부 설정 로딩 클래스 실행
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.minifep.core.config.FepEnvironmentPostProcessor

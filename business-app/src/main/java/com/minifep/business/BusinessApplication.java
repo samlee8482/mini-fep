@@ -8,16 +8,17 @@ import java.nio.charset.StandardCharsets;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 /**
  * Mini FEP 업무 애플리케이션
  *
  * 기관 IP/Port를 직접 관리하지 않는다.
  * FEP 공통 서비스에 기관 코드와 전문만 전달한다.
+ *
+ * FEP 설정 바인딩과 Bean 생성은
+ * fep-core 공통 프레임워크에서 자동으로 처리한다.
  */
 @SpringBootApplication
-@ConfigurationPropertiesScan
 public class BusinessApplication implements CommandLineRunner {
 
     private final FepService fepService;
