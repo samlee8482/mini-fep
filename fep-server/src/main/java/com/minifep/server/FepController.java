@@ -3,38 +3,43 @@ package com.minifep.server;
 import com.minifep.core.message.FepMessage;
 import com.minifep.core.service.FepService;
 import java.io.IOException;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * 업무 앱과 FEP 코어 사이의 REST 진입점.
- * HTTP/JSON 요청을 기존 FepService의 Java 호출로 연결한다.
- * TCP 헤더 및 기관별 Mapper 처리 로직은 이곳에 중복 구현하지 않는다.
+ * 업무 앱의 REST 요청을 받는 독립 FEP 서버 진입점.
+ * X-Trace-Id가 있으면 이어받고, 없으면 새로 생성한다.
+ * MDC는 현재 요청 스레드의 로그에 traceId를 자동으로 추가한다.
+ * 반드시 finally에서 MDC를 제거해 다른 요청으로 추적 ID가 섞이지 않도록 한다.
  */
 @RestController
 @RequestMapping("/api/fep")
 public class FepController {
+    private static final Logger log = LoggerFactory.getLogger(FepController.class);
     private final FepService fepService;
 
-    /** fep-core의 FepConfiguration이 등록한 FepService Bean을 주입받는다. */
     public FepController(FepService fepService) {
         this.fepService = fepService;
     }
 
-    /**
-     * POST /api/fep/send
-     * 요청 예: {"institutionCode":"A","data":"HELLO00001"}
-     * 응답 예: {"data":"SUCCESS001"}
-     * - FepMessage는 기존대로 영문/숫자 10자리 여부를 검증한다.
-     * - 미등록 기관 및 전문 형식 오류는 HTTP 400으로 전달한다.
-     * - 기관 TCP 연결/읽기 오류는 HTTP 502로 전달한다.
-     */
     @PostMapping("/send")
-    public FepRestResponse send(@RequestBody FepRestRequest request) {
+    public FepRestResponse send(@RequestBody FepRestRequest request,
+            @RequestHeader(value = "X-Trace-Id", required = false) String incomingTraceId) {
+        // 외부에서 전달된 임의의 로그 문자열을 허용하지 않도록 UUID 형식을 검증한다.
+        String traceId = validTraceId(incomingTraceId);
+        MDC.put("traceId", traceId);
+        long started = System.nanoTime();
+        String institution = request == null ? "UNKNOWN" : String.valueOf(request.institutionCode());
+        log.info("stage=FEP_RECEIVED status=START institution={}", institution);
         try {
             if (request == null || request.institutionCode() == null
                     || request.institutionCode().isBlank()) {
@@ -42,17 +47,34 @@ public class FepController {
             }
             FepMessage commonRequest = new FepMessage(request.data());
             FepMessage commonResponse = fepService.send(request.institutionCode(), commonRequest);
+            log.info("stage=FEP_FINISHED status=SUCCESS institution={} elapsedMs={}",
+                    institution, elapsedMs(started));
+            // 기존 JSON 응답 형식(data 필드)을 변경하지 않는다.
             return new FepRestResponse(commonResponse.data());
         } catch (IllegalArgumentException ex) {
+            log.warn("stage=FEP_FINISHED status=ERROR institution={} errorType={} elapsedMs={}",
+                    institution, ex.getClass().getSimpleName(), elapsedMs(started));
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         } catch (IOException ex) {
+            log.error("stage=FEP_FINISHED status=ERROR institution={} errorType={} elapsedMs={}",
+                    institution, ex.getClass().getSimpleName(), elapsedMs(started), ex);
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "기관 TCP 통신 실패", ex);
+        } finally {
+            MDC.remove("traceId");
         }
     }
 
-    /** REST 요청의 데이터 구조. HTTP 통신용이며 기관 TCP 전문과는 다르다. */
-    public record FepRestRequest(String institutionCode, String data) { }
+    private static String validTraceId(String value) {
+        if (value != null && value.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
+            return value.toLowerCase(java.util.Locale.ROOT);
+        }
+        return UUID.randomUUID().toString();
+    }
 
-    /** REST 응답은 공통 업무 데이터만 반환한다. */
+    private static long elapsedMs(long start) {
+        return (System.nanoTime() - start) / 1_000_000;
+    }
+
+    public record FepRestRequest(String institutionCode, String data) { }
     public record FepRestResponse(String data) { }
 }

@@ -21,6 +21,11 @@
 
     <!-- 공통 모듈은 단독 실행하지 않고 FEP 서버의 의존성으로 로딩된다. -->
     <dependencies>
+        <!-- SLF4J 로깅 API: 실행 시 FEP 서버의 Logback 구현체가 실제 로그를 출력한다. -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
         <!-- Spring Boot의 환경 설정 및 ConfigurationProperties 바인딩 기능 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

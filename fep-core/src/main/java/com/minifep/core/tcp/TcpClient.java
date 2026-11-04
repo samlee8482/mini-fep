@@ -1,5 +1,7 @@
 package com.minifep.core.tcp;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,6 +22,7 @@ import java.nio.charset.StandardCharsets;
  * 길이 헤더는 본문 길이만 나타내며 헤더 자체 4바이트는 제외한다.
  */
 public class TcpClient {
+    private static final Logger log = LoggerFactory.getLogger(TcpClient.class);
     private static final int HEADER_LENGTH = 4;
     private static final int MAX_BODY_LENGTH = 9999;
 
@@ -34,15 +37,19 @@ public class TcpClient {
             throw new IllegalArgumentException("전문 길이 또는 Timeout 설정이 올바르지 않습니다.");
         }
         // try-with-resources를 사용하면 정상/오류 모두 소켓이 자동 해제된다.
+        long tcpStarted = System.nanoTime();
+        log.info("stage=TCP_CONNECT status=START host={} port={}", host, port);
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(host, port), connectTimeout);
             socket.setSoTimeout(readTimeout);
+            log.info("stage=TCP_CONNECT status=SUCCESS host={} port={}", host, port);
             OutputStream out = socket.getOutputStream();
             // 11바이트 본문이라면 '0011'을 먼저 보내고 본문을 이어서 전송한다.
             out.write(String.format(java.util.Locale.ROOT, "%04d", request.length)
                     .getBytes(StandardCharsets.US_ASCII));
             out.write(request);
             out.flush();
+            log.info("stage=TCP_SEND status=SUCCESS bytes={}", request.length);
 
             InputStream in = socket.getInputStream();
             byte[] header = in.readNBytes(HEADER_LENGTH);
@@ -63,7 +70,14 @@ public class TcpClient {
             if (response.length != responseLength) {
                 throw new EOFException("응답 본문 길이 불일치: " + response.length + "/" + responseLength);
             }
+            log.info("stage=TCP_RECEIVE status=SUCCESS bytes={} elapsedMs={}",
+                    response.length, (System.nanoTime() - tcpStarted) / 1_000_000);
             return response;
+        } catch (IOException | RuntimeException ex) {
+            log.error("stage=TCP_FINISHED status=ERROR host={} port={} errorType={} elapsedMs={}",
+                    host, port, ex.getClass().getSimpleName(),
+                    (System.nanoTime() - tcpStarted) / 1_000_000, ex);
+            throw ex;
         }
     }
 }

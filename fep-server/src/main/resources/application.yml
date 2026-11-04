@@ -7,3 +7,10 @@ server:
 
 # 기관별 TCP 연결 및 전문 규격은 루트의 ./config/fep.yml에서 읽는다.
 # 해당 외부 설정은 fep-core의 FepEnvironmentPostProcessor가 로딩한다.
+
+# 동일 거래의 로그를 서로 다른 프로세스에서도 traceId로 검색할 수 있다.
+logging:
+  file:
+    name: logs/fep-server.log
+  pattern:
+    level: "%5p [traceId=%X{traceId:-none}]"

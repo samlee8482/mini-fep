@@ -7,17 +7,16 @@ import com.minifep.core.mapper.MessageMapperRegistry;
 import com.minifep.core.message.FepMessage;
 import com.minifep.core.tcp.TcpClient;
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * FEP 서버가 사용하는 공통 거래 처리 서비스(Chapter 3-1 기능 유지).
- * 이 클래스는 HTTP를 알지 못한다. 호출자는 FEP 서버의 REST Controller이다.
- * 1) 기관 코드로 접속정보/Mapper 조회
- * 2) 공통 10자리 전문을 기관별 11바이트 전문으로 변환
- * 3) TcpClient로 4바이트 길이 헤더를 포함해 송수신
- * 4) 기관 응답을 공통 FepMessage로 변환
- * Chapter 4 Trace ID, MDC, 거래 단계별 로그는 포함하지 않는다.
+ * 기존 YAML Mapper와 TCP 송수신 호출 순서를 변경하지 않는 공통 FEP 서비스.
+ * MDC의 traceId는 동일 요청 스레드에서 호출되는 TcpClient 로그에도 유지된다.
+ * 전문 원문은 개인정보 노출 위험이 있어 로그에 남기지 않고 길이만 기록한다.
  */
 public class FepService {
+    private static final Logger log = LoggerFactory.getLogger(FepService.class);
     private final InstitutionRegistry registry;
     private final MessageMapperRegistry mapperRegistry;
     private final TcpClient tcpClient;
@@ -28,13 +27,24 @@ public class FepService {
         this.tcpClient = new TcpClient();
     }
 
-    /** 기존 send(String, FepMessage) 시그니처 및 예외 전달 방식을 유지한다. */
     public FepMessage send(String institutionCode, FepMessage request) throws IOException {
+        // 기존 예외 전파 방식을 유지한다. 최종 성공/실패는 REST Controller에서 기록한다.
+        log.info("stage=INSTITUTION_LOOKUP status=START institution={}", institutionCode);
         ConnectionInfo info = registry.get(institutionCode);
         MessageMapper mapper = mapperRegistry.get(institutionCode);
+        log.info("stage=INSTITUTION_LOOKUP status=SUCCESS institution={}", institutionCode);
+
         byte[] institutionRequest = mapper.toInstitution(request);
+        log.info("stage=REQUEST_MAPPING status=SUCCESS institution={} bytes={}",
+                institutionCode, institutionRequest.length);
+
         byte[] institutionResponse = tcpClient.send(info.host(), info.port(), institutionRequest,
                 info.connectTimeout(), info.readTimeout());
-        return mapper.fromInstitution(institutionResponse);
+        log.info("stage=TCP_RESPONSE status=SUCCESS institution={} bytes={}",
+                institutionCode, institutionResponse.length);
+
+        FepMessage response = mapper.fromInstitution(institutionResponse);
+        log.info("stage=RESPONSE_MAPPING status=SUCCESS institution={}", institutionCode);
+        return response;
     }
 }

@@ -9,3 +9,10 @@ spring:
 fep:
   server:
     url: http://127.0.0.1:8082
+
+# 동일 거래의 로그를 서로 다른 프로세스에서도 traceId로 검색할 수 있다.
+logging:
+  file:
+    name: logs/business-app.log
+  pattern:
+    level: "%5p [traceId=%X{traceId:-none}]"
