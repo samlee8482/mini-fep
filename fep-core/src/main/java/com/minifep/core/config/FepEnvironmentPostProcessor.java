@@ -16,7 +16,7 @@ import org.springframework.core.io.Resource;
  * 설정 경로는 현재 작업 디렉터리 기준이므로 mini-fep 루트에서 실행해야 한다.
  *
  * Spring Bean이 생성되기 전에 외부 FEP 설정 파일을 로딩한다.
- * business-app은 기관 설정 파일을 직접 읽지 않아도 된다.
+ * FEP 서버만 fep-core를 의존하므로 업무 앱에서는 이 로더가 실행되지 않는다.
  */
 public class FepEnvironmentPostProcessor implements EnvironmentPostProcessor {
     /**

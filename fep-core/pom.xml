@@ -19,7 +19,7 @@
     <!-- 일반 Java 라이브러리 또는 실행 JAR의 기본 패키징 방식 -->
     <packaging>jar</packaging>
 
-    <!-- 공통 모듈은 단독 실행하지 않고 업무 앱의 의존성으로 로딩된다. -->
+    <!-- 공통 모듈은 단독 실행하지 않고 FEP 서버의 의존성으로 로딩된다. -->
     <dependencies>
         <!-- Spring Boot의 환경 설정 및 ConfigurationProperties 바인딩 기능 -->
         <dependency>
@@ -34,7 +34,7 @@
             <artifactId>spring-context</artifactId>
         </dependency>
 
-        <!-- @AutoConfiguration으로 업무 앱 실행 시 FEP 공통 설정 자동 등록 -->
+        <!-- @AutoConfiguration으로 FEP 서버 실행 시 FEP 공통 설정 자동 등록 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>

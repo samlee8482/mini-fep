@@ -1,0 +1,9 @@
+# 실제 HTTP 요청을 수신하는 독립 FEP 서버 설정.
+spring:
+  application:
+    name: mini-fep-server
+server:
+  port: 8082
+
+# 기관별 TCP 연결 및 전문 규격은 루트의 ./config/fep.yml에서 읽는다.
+# 해당 외부 설정은 fep-core의 FepEnvironmentPostProcessor가 로딩한다.

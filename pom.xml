@@ -31,11 +31,12 @@
         <java.version>21</java.version>
     </properties>
 
-    <!-- Maven은 아래 세 모듈을 순서와 의존관계에 맞게 함께 빌드한다. -->
+    <!-- Maven이 네 개의 독립 모듈을 의존성 순서에 맞게 빌드한다. -->
     <modules>
         <!-- 기관별 전문 변환과 TCP 통신을 제공하는 공통 라이브러리 -->
         <module>fep-core</module>
-        <!-- 공통 라이브러리를 호출하는 Spring Boot 업무 애플리케이션 -->
+        <!-- REST 요청을 보내는 독립 업무 클라이언트 -->
+        <module>fep-server</module>
         <module>business-app</module>
         <!-- 외부 금융기관을 흉내 내는 독립 Java TCP 테스트 서버 -->
         <module>mock-institution</module>

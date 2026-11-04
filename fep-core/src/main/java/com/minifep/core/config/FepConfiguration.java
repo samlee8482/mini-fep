@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Bean;
 
 /**
  * FEP 공통 모듈의 Spring Boot 자동 설정.
- * 업무 앱은 TCP 설정 및 Mapper 객체를 직접 생성하지 않는다.
+ * FEP 서버만 이 모듈을 의존하므로 업무 앱에는 해당 Bean이 생성되지 않는다.
  * 외부 YAML -> FepProperties -> 두 등록소 -> FepService 순서로 Bean을 구성한다.
  */
 @AutoConfiguration
@@ -42,7 +42,7 @@ public class FepConfiguration {
         return new MessageMapperRegistry(properties, customMappers);
     }
 
-    /** 업무 앱이 호출하는 공통 FEP 서비스에 접속/전문 등록소를 주입한다. */
+    /** FEP 서버 REST Controller가 호출하는 공통 FEP 서비스에 접속/전문 등록소를 주입한다. */
     @Bean
     public FepService fepService(InstitutionRegistry registry, MessageMapperRegistry mapperRegistry) {
         return new FepService(registry, mapperRegistry);

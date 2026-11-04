@@ -1,4 +1,11 @@
-# 업무 애플리케이션의 이름만 관리한다. 기관 접속정보는 config/fep.yml에 있다.
+# 업무 앱은 독립적인 HTTP 서버로 기동한다.
+# FEP 서버가 실행 중이지 않아도 업무 요청을 기다릴 수 있다.
+server:
+  port: 8083
 spring:
   application:
     name: mini-fep-business
+# 실제 업무 요청이 발생했을 때에만 접근할 FEP 서버 주소
+fep:
+  server:
+    url: http://127.0.0.1:8082
