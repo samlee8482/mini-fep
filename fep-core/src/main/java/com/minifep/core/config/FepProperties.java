@@ -12,7 +12,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record FepProperties(Map<String, Institution> institutions) {
     /** 기관별 접속 정보 및 Mapper 규칙. */
     public record Institution(String host, int port, int connectTimeout, int readTimeout,
-                              Mapper mapper) { }
+                              Mapper mapper, Pool pool) { }
+
+    /** 기관별 최대 동시 연결 수, Pool 대기시간 및 최대 유휴시간(ms). */
+    public record Pool(int maxConnections, int borrowTimeout, Integer maxIdleMs) { }
 
     /** type=common이면 prefix를 사용하고, type=custom이면 전용 Mapper를 선택한다. */
     public record Mapper(String type, String prefix) { }

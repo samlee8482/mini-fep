@@ -1,6 +1,7 @@
 package com.minifep.core.service;
 
 import com.minifep.core.config.InstitutionRegistry;
+import com.minifep.core.config.TcpPoolRegistry;
 import com.minifep.core.config.InstitutionRegistry.ConnectionInfo;
 import com.minifep.core.mapper.MessageMapper;
 import com.minifep.core.mapper.MessageMapperRegistry;
@@ -21,10 +22,12 @@ public class FepService {
     private final InstitutionRegistry registry;
     private final MessageMapperRegistry mapperRegistry;
     private final TcpClient tcpClient;
+    private final TcpPoolRegistry pools;
 
-    public FepService(InstitutionRegistry registry, MessageMapperRegistry mapperRegistry) {
+    public FepService(InstitutionRegistry registry, MessageMapperRegistry mapperRegistry, TcpPoolRegistry pools) {
         this.registry = registry;
         this.mapperRegistry = mapperRegistry;
+        this.pools = pools;
         this.tcpClient = new TcpClient();
     }
 
@@ -47,8 +50,7 @@ public class FepService {
         log.info("stage=REQUEST_MAPPING status=SUCCESS institution={} bytes={}",
                 institutionCode, institutionRequest.length);
 
-        byte[] institutionResponse = tcpClient.send(info.host(), info.port(), institutionRequest,
-                info.connectTimeout(), info.readTimeout());
+        byte[] institutionResponse = tcpClient.send(pools.get(institutionCode), institutionRequest);
         log.info("stage=TCP_RESPONSE status=SUCCESS institution={} bytes={}",
                 institutionCode, institutionResponse.length);
 

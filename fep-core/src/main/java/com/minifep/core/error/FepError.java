@@ -7,6 +7,7 @@ public enum FepError {
     CONNECT_TIMEOUT("FEP-2001", "기관 TCP 연결 시간 초과", 504),
     CONNECT_FAILURE("FEP-2002", "기관 TCP 연결 실패", 502),
     READ_TIMEOUT("FEP-2003", "기관 TCP 응답 대기시간 초과", 504),
+    POOL_EXHAUSTED("FEP-2004", "기관 TCP Connection Pool 대기시간 초과", 503),
     INVALID_RESPONSE("FEP-3001", "기관 응답 전문 오류", 502),
     INTERNAL_ERROR("FEP-9000", "FEP 내부 처리 오류", 500);
 

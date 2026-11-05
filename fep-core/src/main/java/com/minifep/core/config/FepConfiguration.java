@@ -3,6 +3,7 @@ package com.minifep.core.config;
 import com.minifep.core.mapper.MessageMapper;
 import com.minifep.core.mapper.MessageMapperRegistry;
 import com.minifep.core.service.FepService;
+import com.minifep.core.tcp.TcpConnectionPool;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,9 +43,15 @@ public class FepConfiguration {
         return new MessageMapperRegistry(properties, customMappers);
     }
 
+    /** 기관마다 독립적인 Pool을 생성한다. 종료 시 Spring이 close()를 호출한다. */
+    @Bean(destroyMethod = "close")
+    public TcpPoolRegistry tcpPoolRegistry(FepProperties properties) {
+        return new TcpPoolRegistry(properties);
+    }
+
     /** FEP 서버 REST Controller가 호출하는 공통 FEP 서비스에 접속/전문 등록소를 주입한다. */
     @Bean
-    public FepService fepService(InstitutionRegistry registry, MessageMapperRegistry mapperRegistry) {
-        return new FepService(registry, mapperRegistry);
+    public FepService fepService(InstitutionRegistry registry, MessageMapperRegistry mapperRegistry, TcpPoolRegistry pools) {
+        return new FepService(registry, mapperRegistry, pools);
     }
 }

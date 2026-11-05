@@ -9,6 +9,12 @@ fep:
       port: 9001
       connect-timeout: 3000
       read-timeout: 5000
+      # Chapter 6: 기관별 최대 동시 TCP 연결 수 및 연결 대기시간(ms)
+      pool:
+        max-connections: 5
+        borrow-timeout: 2000
+        # 마지막 반납 후 20초 이상 경과한 연결은 다음 대여 시 폐기 후 재생성
+        max-idle-ms: 20000
       mapper:
         type: common
         prefix: A
@@ -17,6 +23,12 @@ fep:
       port: 9002
       connect-timeout: 3000
       read-timeout: 5000
+      # Chapter 6: 기관별 최대 동시 TCP 연결 수 및 연결 대기시간(ms)
+      pool:
+        max-connections: 5
+        borrow-timeout: 2000
+        # 마지막 반납 후 20초 이상 경과한 연결은 다음 대여 시 폐기 후 재생성
+        max-idle-ms: 20000
       mapper:
         type: common
         prefix: B

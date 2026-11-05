@@ -38,44 +38,53 @@ public class MockTcpServer {
         try (ServerSocket server = new ServerSocket(port)) {
             System.out.println("[" + institutionName + "] 서버 시작 - PORT: " + port);
             while (true) {
-                // 이번 PoC는 연결 1건을 처리하고 닫는 단순 순차 처리 서버이다.
-                try (Socket socket = server.accept()) {
-                    socket.setSoTimeout(5000);
-                    InputStream in = socket.getInputStream();
-                    byte[] header = in.readNBytes(4);
-                    if (header.length != 4) throw new EOFException("요청 길이 헤더 부족");
-                    String headerText = new String(header, StandardCharsets.US_ASCII);
-                    if (!headerText.matches("[0-9]{4}")) {
-                        throw new IllegalArgumentException("요청 길이 헤더 형식 오류");
-                    }
-                    int length = Integer.parseInt(headerText);
-                    // 실습 규격은 기관 prefix 1 + 업무 데이터 10 = 총 11바이트이다.
-                    if (length != 11) throw new IllegalArgumentException("요청 본문 길이 오류: " + length);
-                    byte[] request = in.readNBytes(length);
-                    if (request.length != length || request[0] != (byte) prefix) {
-                        throw new IllegalArgumentException("요청 기관 구분 또는 전문 길이 오류");
-                    }
-                    String data = new String(request, 1, 10, StandardCharsets.US_ASCII);
-                    System.out.println("[" + institutionName + "] 요청: " + data);
-
-                    // Chapter 5: 실행 인자로 선택한 테스트 모드. 기본값은 정상 처리.
-                    // delay: 6초 지연으로 read-timeout(5초)을 재현한다.
-                    // malformed: 기존 전문 규격을 바꾸지 않고 일부러 잘못된 길이 헤더를 보낸다.
-                    // wrong-prefix: 본문 길이는 유지하고 기관 구분자만 잘못 보낸다.
-                    if ("delay".equals(testMode)) Thread.sleep(6000);
-                    byte[] body = (("wrong-prefix".equals(testMode) ? 'Z' : prefix) + responseMessage)
-                            .getBytes(StandardCharsets.US_ASCII);
-                    OutputStream out = socket.getOutputStream();
-                    out.write(("malformed".equals(testMode) ? "ABCD" : String.format(Locale.ROOT, "%04d", body.length))
-                            .getBytes(StandardCharsets.US_ASCII));
-                    out.write(body);
-                    out.flush();
-                    System.out.println("[" + institutionName + "] 응답: " + responseMessage);
-                } catch (Exception e) {
-                    // 잘못된 연결 한 건이 들어와도 가상기관 전체 서버는 유지한다.
-                    System.err.println("[" + institutionName + "] 전문 처리 오류: " + e.getMessage());
-                }
+                // Chapter 6: 연결별 가상 스레드로 처리하여 여러 Pool 연결을 동시에 수락한다.
+                // 동일 소켓에서 요청 전문을 반복 읽으므로 다음 거래에서도 연결이 유지된다.
+                Socket accepted = server.accept();
+                Thread.ofVirtual().start(() -> handleConnection(accepted));
             }
+        }
+    }
+
+    /**
+     * 한 연결에서 여러 건의 요청을 순서대로 처리한다.
+     * EOF는 클라이언트가 정상적으로 소켓을 닫았다는 의미다.
+     * 요청이 없는 유휴 연결은 무한히 기다리지 않도록 30초 후 정리한다.
+     */
+    private void handleConnection(Socket accepted) {
+        try (Socket socket = accepted) {
+            socket.setSoTimeout(30000);
+            InputStream in = socket.getInputStream();
+            OutputStream out = socket.getOutputStream();
+            System.out.println("[" + institutionName + "] TCP 연결 수락: " + socket.getRemoteSocketAddress());
+            while (true) {
+                byte[] header = in.readNBytes(4);
+                if (header.length == 0) return; // 상대방 정상 종료
+                if (header.length != 4) throw new EOFException("요청 길이 헤더 부족");
+                String headerText = new String(header, StandardCharsets.US_ASCII);
+                if (!headerText.matches("[0-9]{4}")) {
+                    throw new IllegalArgumentException("요청 길이 헤더 형식 오류");
+                }
+                int length = Integer.parseInt(headerText);
+                if (length != 11) throw new IllegalArgumentException("요청 본문 길이 오류: " + length);
+                byte[] request = in.readNBytes(length);
+                if (request.length != length || request[0] != (byte) prefix) {
+                    throw new IllegalArgumentException("요청 기관 구분 또는 전문 길이 오류");
+                }
+                String data = new String(request, 1, 10, StandardCharsets.US_ASCII);
+                System.out.println("[" + institutionName + "] 요청: " + data);
+                // Chapter 5의 장애 재현 모드는 그대로 유지한다.
+                if ("delay".equals(testMode)) Thread.sleep(6000);
+                byte[] body = (("wrong-prefix".equals(testMode) ? 'Z' : prefix) + responseMessage)
+                        .getBytes(StandardCharsets.US_ASCII);
+                out.write(("malformed".equals(testMode) ? "ABCD" : String.format(Locale.ROOT, "%04d", body.length))
+                        .getBytes(StandardCharsets.US_ASCII));
+                out.write(body);
+                out.flush();
+                System.out.println("[" + institutionName + "] 응답: " + responseMessage);
+            }
+        } catch (Exception e) {
+            System.err.println("[" + institutionName + "] 연결 처리 종료: " + e.getMessage());
         }
     }
 
