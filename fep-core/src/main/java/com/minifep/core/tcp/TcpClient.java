@@ -8,6 +8,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
+import com.minifep.core.error.FepError;
+import com.minifep.core.error.FepException;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -30,7 +35,7 @@ public class TcpClient {
      * 기관별 요청을 처리하고 응답을 반환한다. 입력값 및 네트워크 오류는 호출자에게 전달한다.
      */
     public byte[] send(String host, int port, byte[] request,
-                       int connectTimeout, int readTimeout) throws IOException {
+                       int connectTimeout, int readTimeout) {
         // 무한 대기나 허용 범위 초과 전문을 사전에 차단한다.
         if (request == null || request.length == 0 || request.length > MAX_BODY_LENGTH
                 || connectTimeout <= 0 || readTimeout <= 0) {
@@ -40,7 +45,14 @@ public class TcpClient {
         long tcpStarted = System.nanoTime();
         log.info("stage=TCP_CONNECT status=START host={} port={}", host, port);
         try (Socket socket = new Socket()) {
-            socket.connect(new InetSocketAddress(host, port), connectTimeout);
+            // connect()에서 발생한 시간 초과는 읽기 시간 초과와 별도로 분류한다.
+            try {
+                socket.connect(new InetSocketAddress(host, port), connectTimeout);
+            } catch (SocketTimeoutException ex) {
+                throw new FepException(FepError.CONNECT_TIMEOUT, ex);
+            } catch (IOException ex) {
+                throw new FepException(FepError.CONNECT_FAILURE, ex);
+            }
             socket.setSoTimeout(readTimeout);
             log.info("stage=TCP_CONNECT status=SUCCESS host={} port={}", host, port);
             OutputStream out = socket.getOutputStream();
@@ -52,23 +64,28 @@ public class TcpClient {
             log.info("stage=TCP_SEND status=SUCCESS bytes={}", request.length);
 
             InputStream in = socket.getInputStream();
-            byte[] header = in.readNBytes(HEADER_LENGTH);
+            // 응답 헤더/본문을 읽는 동안 발생하는 SocketTimeoutException만 READ_TIMEOUT이다.
+            byte[] header;
+            try { header = in.readNBytes(HEADER_LENGTH); }
+            catch (SocketTimeoutException ex) { throw new FepException(FepError.READ_TIMEOUT, ex); }
             if (header.length != HEADER_LENGTH) {
-                throw new EOFException("응답 길이 헤더 수신 실패");
+                throw new FepException(FepError.INVALID_RESPONSE, new EOFException("응답 길이 헤더 수신 실패"));
             }
             // 숫자 이외의 헤더를 허용하지 않는다.
             String lengthText = new String(header, StandardCharsets.US_ASCII);
             if (!lengthText.matches("[0-9]{4}")) {
-                throw new IOException("응답 길이 헤더 형식 오류: " + lengthText);
+                throw new FepException(FepError.INVALID_RESPONSE, new IOException("응답 길이 헤더 형식 오류: " + lengthText));
             }
             int responseLength = Integer.parseInt(lengthText);
             if (responseLength <= 0 || responseLength > MAX_BODY_LENGTH) {
-                throw new IOException("응답 본문 길이 오류: " + responseLength);
+                throw new FepException(FepError.INVALID_RESPONSE, new IOException("응답 본문 길이 오류: " + responseLength));
             }
             // TCP는 한 번의 read로 전체 전문이 오지 않을 수 있으므로 정확히 N바이트를 읽는다.
-            byte[] response = in.readNBytes(responseLength);
+            byte[] response;
+            try { response = in.readNBytes(responseLength); }
+            catch (SocketTimeoutException ex) { throw new FepException(FepError.READ_TIMEOUT, ex); }
             if (response.length != responseLength) {
-                throw new EOFException("응답 본문 길이 불일치: " + response.length + "/" + responseLength);
+                throw new FepException(FepError.INVALID_RESPONSE, new EOFException("응답 본문 길이 불일치: " + response.length + "/" + responseLength));
             }
             log.info("stage=TCP_RECEIVE status=SUCCESS bytes={} elapsedMs={}",
                     response.length, (System.nanoTime() - tcpStarted) / 1_000_000);
@@ -77,7 +94,10 @@ public class TcpClient {
             log.error("stage=TCP_FINISHED status=ERROR host={} port={} errorType={} elapsedMs={}",
                     host, port, ex.getClass().getSimpleName(),
                     (System.nanoTime() - tcpStarted) / 1_000_000, ex);
-            throw ex;
+            if (ex instanceof FepException fe) throw fe;
+            // 송신/수신 도중 연결이 끊긴 경우는 연결 실패로 통일한다.
+            if (ex instanceof IOException io) throw new FepException(FepError.CONNECT_FAILURE, io);
+            throw new FepException(FepError.INTERNAL_ERROR, ex);
         }
     }
 }

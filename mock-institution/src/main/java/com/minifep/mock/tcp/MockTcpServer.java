@@ -22,6 +22,7 @@ public class MockTcpServer {
     private final int port;
     private final char prefix;
     private final String responseMessage;
+    private String testMode = "normal";
 
     public MockTcpServer(String institutionName, int port, char prefix, String responseMessage) {
         this.institutionName = institutionName;
@@ -57,9 +58,15 @@ public class MockTcpServer {
                     String data = new String(request, 1, 10, StandardCharsets.US_ASCII);
                     System.out.println("[" + institutionName + "] 요청: " + data);
 
-                    byte[] body = (prefix + responseMessage).getBytes(StandardCharsets.US_ASCII);
+                    // Chapter 5: 실행 인자로 선택한 테스트 모드. 기본값은 정상 처리.
+                    // delay: 6초 지연으로 read-timeout(5초)을 재현한다.
+                    // malformed: 기존 전문 규격을 바꾸지 않고 일부러 잘못된 길이 헤더를 보낸다.
+                    // wrong-prefix: 본문 길이는 유지하고 기관 구분자만 잘못 보낸다.
+                    if ("delay".equals(testMode)) Thread.sleep(6000);
+                    byte[] body = (("wrong-prefix".equals(testMode) ? 'Z' : prefix) + responseMessage)
+                            .getBytes(StandardCharsets.US_ASCII);
                     OutputStream out = socket.getOutputStream();
-                    out.write(String.format(Locale.ROOT, "%04d", body.length)
+                    out.write(("malformed".equals(testMode) ? "ABCD" : String.format(Locale.ROOT, "%04d", body.length))
                             .getBytes(StandardCharsets.US_ASCII));
                     out.write(body);
                     out.flush();
@@ -86,6 +93,8 @@ public class MockTcpServer {
             System.err.println("지원하지 않는 기관입니다: " + institution);
             return;
         }
+        // 사용 예: java ... MockTcpServer B delay
+        server.testMode = args.length > 1 ? args[1].toLowerCase(Locale.ROOT) : "normal";
         try {
             server.start();
         } catch (Exception e) {

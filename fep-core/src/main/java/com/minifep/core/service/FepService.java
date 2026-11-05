@@ -6,7 +6,8 @@ import com.minifep.core.mapper.MessageMapper;
 import com.minifep.core.mapper.MessageMapperRegistry;
 import com.minifep.core.message.FepMessage;
 import com.minifep.core.tcp.TcpClient;
-import java.io.IOException;
+import com.minifep.core.error.FepError;
+import com.minifep.core.error.FepException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,14 +28,22 @@ public class FepService {
         this.tcpClient = new TcpClient();
     }
 
-    public FepMessage send(String institutionCode, FepMessage request) throws IOException {
+    public FepMessage send(String institutionCode, FepMessage request) {
         // 기존 예외 전파 방식을 유지한다. 최종 성공/실패는 REST Controller에서 기록한다.
         log.info("stage=INSTITUTION_LOOKUP status=START institution={}", institutionCode);
-        ConnectionInfo info = registry.get(institutionCode);
-        MessageMapper mapper = mapperRegistry.get(institutionCode);
+        ConnectionInfo info;
+        MessageMapper mapper;
+        try {
+            info = registry.get(institutionCode);
+            mapper = mapperRegistry.get(institutionCode);
+        } catch (IllegalArgumentException ex) {
+            throw new FepException(FepError.INVALID_INSTITUTION, ex);
+        }
         log.info("stage=INSTITUTION_LOOKUP status=SUCCESS institution={}", institutionCode);
 
-        byte[] institutionRequest = mapper.toInstitution(request);
+        byte[] institutionRequest;
+        try { institutionRequest = mapper.toInstitution(request); }
+        catch (IllegalArgumentException ex) { throw new FepException(FepError.INVALID_REQUEST, ex); }
         log.info("stage=REQUEST_MAPPING status=SUCCESS institution={} bytes={}",
                 institutionCode, institutionRequest.length);
 
@@ -43,7 +52,9 @@ public class FepService {
         log.info("stage=TCP_RESPONSE status=SUCCESS institution={} bytes={}",
                 institutionCode, institutionResponse.length);
 
-        FepMessage response = mapper.fromInstitution(institutionResponse);
+        FepMessage response;
+        try { response = mapper.fromInstitution(institutionResponse); }
+        catch (IllegalArgumentException ex) { throw new FepException(FepError.INVALID_RESPONSE, ex); }
         log.info("stage=RESPONSE_MAPPING status=SUCCESS institution={}", institutionCode);
         return response;
     }
